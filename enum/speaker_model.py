@@ -8,11 +8,11 @@ import itertools
 
 
 class SpeakerModel:
-    def __init__(self, ld, language):
+    def __init__(self, ld, language, settings):
 
         # Composition of the speaker model
         self.language = language
-        self.lexicon = Lexicon()
+        self.lexicon = Lexicon(settings)
         self.LFInterface = LFInterface()
         self.PFspellout = PFspellout()
         self.narrow_semantics = NarrowSemantics()

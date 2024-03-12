@@ -25,3 +25,9 @@ def tset(X):
         return X
     else:
         return {X}
+
+def comment(line):
+    return line.startswith('#')
+
+def well_formed_lexical_entry(line):
+    return '::' in line

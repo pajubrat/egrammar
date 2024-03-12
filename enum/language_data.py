@@ -32,8 +32,8 @@ class LanguageData:
                     break
             self.study_dataset.append((numeration, dataset))
 
-    def start_logging(self):
-        self.log_file = open('language data/study 1/log.txt', 'w')
+    def start_logging(self, log_file_name):
+        self.log_file = open(log_file_name, 'w')
         PhraseStructure.logging = self.log_file
 
     def log(self, str):
@@ -47,10 +47,18 @@ class LanguageData:
         self.log_file.write(f'\n\t= {print_constituent_lst(new_sWM)}\n\n')
         PhraseStructure.logging_report = ''
 
-    def evaluate_experiment(self, output_from_simulation, gold_standard_dataset):
+    def prepare_experiment(self, n_dataset, numeration, gold_standard_dataset):
+        self.output_data = set()
+        print(f'Dataset {n_dataset}:')
+        self.log('\n---------------------------------------------------\n')
+        self.log(f'Dataset {n_dataset}:\n')
+        self.log(f'Numeration: {numeration}\n')
+        self.log(f'Predicted outcome: {gold_standard_dataset}\n\n\n')
+
+    def evaluate_experiment(self, gold_standard_dataset):
         print(f'\tDerivational steps: {self.n_accepted_sentences}')
-        overgeneralization = output_from_simulation - gold_standard_dataset
-        undergeneralization = gold_standard_dataset - output_from_simulation
+        overgeneralization = self.output_data - gold_standard_dataset
+        undergeneralization = gold_standard_dataset - self.output_data
         errors = len(overgeneralization) + len(undergeneralization)
         print(f'\tErrors {errors}')
         if errors > 0:
