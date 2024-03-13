@@ -9,4 +9,10 @@ T		::	!COMP:V -COMP:Adv -SPEC:C -SPEC:T -SPEC:V -SPEC:T/inf -ε
 v		::	V !COMP:V !SPEC:D -COMP:Adv -COMP:A -COMP:v  -SPEC:T/inf !wCOMP:V -ε
 V/INTR	::	-COMP:D !SPEC:D
 V/TR	::	-SPEC:D !COMP:D
+
+# Language-specific rules
+
+T LANG:EN	:: TEST
+				
+				
 				

@@ -47,12 +47,12 @@ class LanguageData:
         self.log_file.write(f'\n\t= {print_constituent_lst(new_sWM)}\n\n')
         PhraseStructure.logging_report = ''
 
-    def prepare_experiment(self, n_dataset, numeration, gold_standard_dataset):
+    def prepare_experiment(self, n_dataset, numeration, gold_standard_dataset, language):
         self.output_data = set()
-        print(f'Dataset {n_dataset}:')
+        print(f'Dataset {n_dataset} ({language}):')
         self.log('\n---------------------------------------------------\n')
         self.log(f'Dataset {n_dataset}:\n')
-        self.log(f'Numeration: {numeration}\n')
+        self.log(f'Numeration: {numeration}({language})\n')
         self.log(f'Predicted outcome: {gold_standard_dataset}\n\n\n')
 
     def evaluate_experiment(self, gold_standard_dataset):

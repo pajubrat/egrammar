@@ -12,7 +12,7 @@ class SpeakerModel:
 
         # Composition of the speaker model
         self.language = language
-        self.lexicon = Lexicon(settings)
+        self.lexicon = Lexicon(settings, language)
         self.LFInterface = LFInterface()
         self.PFspellout = PFspellout()
         self.narrow_semantics = NarrowSemantics()
