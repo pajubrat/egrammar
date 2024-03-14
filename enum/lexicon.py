@@ -42,7 +42,7 @@ class Lexicon:
             for item in Lexicon.root_lexicon.keys():
                 if language in Lexicon.root_lexicon[item] or \
                         not self.language(Lexicon.root_lexicon[item]):
-                    self.speaker_lexicon[item] = Lexicon.root_lexicon[item]
+                    self.speaker_lexicon[item] = Lexicon.root_lexicon[item].copy()
                     self.speaker_lexicon[item].add(language)    #   Adds language feature (relevant if no language is specified)
             for lex in self.speaker_lexicon.keys():
                 for trigger_features in Lexicon.redundancy_rules.keys():

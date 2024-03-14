@@ -3,7 +3,7 @@ from lexicon import Lexicon
 from LF_interface import LFInterface
 from PF_spellout import PFspellout
 from narrow_semantics import NarrowSemantics
-from support import print_lst, print_constituent_lst, tcopy, tset
+from support import print_lst, print_constituent_lst, tcopy, tset, get_root
 import itertools
 
 
@@ -18,6 +18,7 @@ class SpeakerModel:
         self.narrow_semantics = NarrowSemantics()
 
         # Internal bookkeeping, data management and logging
+        self.output_data = dict()
         self.language_data = ld
 
         # List of all syntactic operations available in the grammar
@@ -28,7 +29,9 @@ class SpeakerModel:
     # Wrapper function for the derivational search function
     # Performs initialization and maps the input into numeration
     def derive(self, numeration):
+        self.output_data = {'targets': set(), 'thematic roles': set()}
         self.derivational_search_function([self.lexicon.retrieve(item) for item in numeration])
+        return self.output_data
 
     # Derivational search function
     def derivational_search_function(self, sWM):
@@ -57,12 +60,15 @@ class SpeakerModel:
                 self.language_data.log('\n\n')
                 return
 
+        X = get_root(sWM)
+
         # PF pathway
         output_sentence = f'{self.PFspellout.spellout(X)}'
 
         # LF pathway
-        semantic_interpretation = f'{self.narrow_semantics.semantic_interpretation(X)}'
+        semantic_interpretation = self.narrow_semantics.interpret(X)
 
-        # Report results
-        self.language_data.report_results(output_sentence, semantic_interpretation, sWM)
-
+        # Send results for external modules for evaluation
+        self.output_data['targets'].add(output_sentence)
+        self.output_data['thematic roles'] = self.output_data['thematic roles'] | semantic_interpretation['thematic roles']
+        self.language_data.report_results_to_console(output_sentence, semantic_interpretation, sWM)

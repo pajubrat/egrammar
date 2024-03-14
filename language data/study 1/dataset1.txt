@@ -1,7 +1,14 @@
 
-
 # 1
-Numeration=a,b,c
+numeration=a;b;c
 
 # 2
-Numeration=the,dog,barks
+numeration= the; dog; barks
+targets=the dog barks
+thematic roles=Agent of barks(the dog)
+
+# 3
+numeration= the; dog; bite; the; man
+targets=the dog bite the man; the man bite the dog
+thematic roles=agent of bite(the dog); patient of bite(the man)
+thematic roles=agent of bite(the man); patient of bite(the dog)

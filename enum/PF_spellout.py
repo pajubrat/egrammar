@@ -4,16 +4,16 @@ class PFspellout:
     def __init__(self):
         pass
 
-    def spellout(self, X):
-        return self.linearize(X)
+    def spellout(self, X, spellout_all=False):
+        return self.linearize(X, spellout_all)[:-1]     #   Remove extra space at the end
 
-    def linearize(self, X):
+    def linearize(self, X, spellout_all=False):
         linearized_output_str = ''
         # Linearization of left adjuncts
         for x in (x for x in X.adjuncts if x.linearizes_left()):
             linearized_output_str += self.linearize(x)
         # Linearization of regular constituents
-        if not X.silent:
+        if spellout_all or not X.silent:
             if X.zero_level():
                 linearized_output_str += self.linearize_word(X, '') + ' '
             else:
@@ -32,6 +32,6 @@ class PFspellout:
             word_str += X.phon
         else:
             for x in X.const:
-                word_str = x.linearize_word(word_str)
+                word_str = self.linearize_word(x, word_str)
         return word_str
 

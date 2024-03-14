@@ -13,12 +13,14 @@ def run():
     n_dataset = 0
     n_total_errors = 0
 
-    for numeration, gold_standard_dataset in ld.study_dataset:
+    for input_data in ld.batch_dataset:
         n_dataset += 1
-        language = Lexicon.guess_language(numeration)   #   Language is determined on the basis of the words in the numeration
-        ld.prepare_experiment(n_dataset, numeration, gold_standard_dataset, language)
-        speaker_model[language].derive(numeration)
-        n_total_errors += ld.evaluate_experiment(gold_standard_dataset)
+        language = Lexicon.guess_language(input_data['numeration'])
+        ld.prepare_experiment(n_dataset, input_data, language)
+        output_data = speaker_model[language].derive(input_data['numeration'])
+        n_total_errors += ld.evaluate_experiment(input_data, output_data)
+
+        #   ^ we need to send the dataset and the whole output (including semantics) for this function
 
     print(f'\nTOTAL ERRORS: {n_total_errors}\n')
     ld.log(f'\nTOTAL ERRORS: {n_total_errors}')

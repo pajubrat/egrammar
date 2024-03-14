@@ -18,11 +18,11 @@ class PhraseStructure:
         self.zero = False         # Zero-level categories
         self.silent = False       # Phonological silencing
         self.chain_index = 0      # Marking chains in the output, not part of the theory
-        self.mother = None        # Mother node
+        self.mother_ = None       # Mother node
         if X:
-            X.mother = self
+            X.mother_ = self
         if Y:
-            Y.mother = self
+            Y.mother_ = self
 
     # Definition for left constituent (abstraction)
     def left(X):
@@ -32,11 +32,17 @@ class PhraseStructure:
     def right(X):
         return X.const[1]
 
+    # Definition for left sibling
     def isLeft(X):
-        return X.sister() and X.mother.left() == X
+        return X.sister() and X.mother().left() == X
 
+    # Definition for right sibling
     def isRight(X):
-        return X.sister() and X.mother.right() == X
+        return X.sister() and X.mother().right() == X
+
+    # Definition for motherhood
+    def mother(X):
+        return X.mother_
 
     def copy(X):
         if not X.terminal():
@@ -196,8 +202,8 @@ class PhraseStructure:
 
     # Determines whether X has a sister constituent and returns that constituent if present
     def sister(X):
-        if X.mother:
-            return next((const for const in X.mother.const if const != X), None)
+        if X.mother():
+            return next((const for const in X.mother().const if const != X), None)
 
     # Determines whether X has a right sister and return that constituent if present
     def complement(X):
@@ -206,7 +212,7 @@ class PhraseStructure:
 
     # Left sister
     def left_sister(X):
-        if X.sister() and X.mother.right() == X:
+        if X.sister() and X.mother().right() == X:
             return X.sister()
 
     # Calculates the head of any phrase structure object X ("labelling algorithm")
@@ -216,6 +222,10 @@ class PhraseStructure:
             if x and x.zero_level():        #   Returns the first zero-level object
                 return x
         return x.head()                     #   Recursion
+
+    def container(X):
+        if X.mother():
+            return X.mother().head()
 
     # Verifies (recursively) that the configuration satisfies complement and
     # specifier subcategorization; only zero-level categories have subcategorization
@@ -266,10 +276,26 @@ class PhraseStructure:
     # left-adjoined phrases (if adjunction is part of the grammar)
     def specifier(X):
         x = X.head()
-        while x and x.mother and x.mother.head() == X:
-            if x.mother.left() != X:
-                return x.mother.left()
-            x = x.mother
+        while x and x.mother() and x.mother().head() == X:
+            if x.mother().left() != X:
+                return x.mother().left()
+            x = x.mother()
+
+    def max(X):
+        while X:
+            if X.mother() and X.mother().head() == X.head():
+                X = X.mother()
+            else:
+                return X
+
+    def referential_argument(X):
+        return 'D' in X.head().features and not X.zero_level()
+
+    def thematic_head(X):
+        return 'θ' in X.features
+
+    def verbal(X):
+        return 'V' in X.features
 
     # Definition for bound morpheme
     def bound_morpheme(X):
@@ -294,7 +320,7 @@ class PhraseStructure:
         return 'λ:R' in X.head().features
 
     def isRoot(X):
-        return not X.mother
+        return not X.mother()
 
     def mandateDirectHeadMerge(X):
         return 'ε' in X.features
@@ -322,19 +348,13 @@ class PhraseStructure:
             if f.startswith('α:'):
                 return f.split(':')[1]
 
-    # Auxiliary printout function, to help eyeball the output
-    def __str__(X):
+    def __repr__(X):
         str = ''
-        if X.silent:                    #   Phonologically silenced constituents are marked by __
-            if X.zero_level():
-                return '__ '
+        if X.mother() and X not in X.mother().const:                    # Adjunct printout, add the adjunction link
+            if X.mother().zero_level():
+                str += f'{X.mother().head().lexical_category()}|'
             else:
-                return f'__:{X.chain_index} '
-        if X.mother and X not in X.mother.const:                    # Adjunct printout, add the adjunction link
-            if X.mother.zero_level():
-                str += f'{X.mother.head().lexical_category()}|'
-            else:
-                str += f'{X.mother.head().lexical_category()}P|'
+                str += f'{X.mother().head().lexical_category()}P|'
         if X.terminal():                #   Terminal constituents are spelled out
             str += X.phon
         else:
@@ -347,9 +367,43 @@ class PhraseStructure:
                 str += f'_{X.head().lexical_category()}P '  #   Print information about heads and labelling
             for const in X.const:
                 str += f'{const} '
+            str = str[:-1]
             str += bracket[1]
             if X.chain_index != 0:
                 str += f':{X.chain_index} '
+        for x in X.adjuncts:
+            str += '^'
+        return str
+
+    # Auxiliary printout function, to help eyeball the output
+    def __str__(X):
+        str = ''
+        if X.silent:                    #   Phonologically silenced constituents are marked by __
+            if X.zero_level():
+                return '_'
+            else:
+                return f'_:{X.chain_index}'
+        if X.mother() and X not in X.mother().const:                    # Adjunct printout, add the adjunction link
+            if X.mother().zero_level():
+                str += f'{X.mother().head().lexical_category()}|'
+            else:
+                str += f'{X.mother().head().lexical_category()}P|'
+        if X.terminal():                #   Terminal constituents are spelled out
+            str += X.phon
+        else:
+            if X.zero_level():          #   Non-terminal zero-level categories use different brackets
+                bracket = ('(', ')')
+            else:
+                bracket = ('[', ']')
+            str += bracket[0]
+            if not X.zero_level():
+                str += f'_{X.head().lexical_category()}P '  #   Print information about heads and labelling
+            for const in X.const:
+                str += f'{const} '
+            str = str[:-1]
+            str += bracket[1]
+            if X.chain_index != 0:
+                str += f':{X.chain_index}'
         for x in X.adjuncts:
             str += '^'
         return str

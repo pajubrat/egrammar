@@ -1,36 +1,49 @@
 from phrase_structure import PhraseStructure
-from support import print_constituent_lst
+from support import print_constituent_lst, print_dictionary
 
 #
 # This class maintains all data used in the simulation
 #
 class LanguageData:
     def __init__(self):
-        self.study_dataset = []             # Datasets for one study
+        self.batch_dataset = []             # Datasets for one study
         self.log_file = None                # Handle for the log file (stored logging output)
         self.n_steps = 0                    # N of derivational steps
-        self.output_data = set()            # Stored the output from each experiment
+        self.output_data = dict()           # Stored the output from each experiment
         self.n_accepted_sentences = 0       # Number of accepted sentences
 
     # Read the dataset
     def read_dataset(self, filename):
-        numeration = []
-        dataset = set()
+        def reset():
+            return {'numeration': [], 'targets': set(), 'thematic roles': set()}
+
+        def parse(line):
+            line = line.strip()
+            key, value = line.split('=')
+            values = value.split(';')
+            values_ = [v.strip() for v in values]
+            return values_
+
+        input_data = reset()
         with open(filename) as f:
             lines = f.readlines()
             for line in lines:
                 if line.strip() and not line.startswith('#') and not line.startswith('END'):
                     line = line.strip()
-                    if line.startswith('Numeration='):
-                        if numeration:
-                            self.study_dataset.append((numeration, dataset))
-                            dataset = set()
-                        numeration = [word.strip() for word in line.split('=')[1].split(',')]
-                    else:
-                        dataset.add(line.strip())
-                if line.startswith('END'):
+                    if line.startswith('numeration='):
+                        # If we encounter the numeration field, then the current dataset (if it exists) will
+                        # be stored into the batch dataset and we start collecting new
+                        if input_data['numeration']:
+                            self.batch_dataset.append(input_data)
+                            input_data = reset()
+                        input_data['numeration'] = parse(line)
+                    if line.startswith('targets='):
+                        input_data['targets'].update(set(parse(line)))
+                    if line.startswith('thematic roles='):
+                        input_data['thematic roles'].update(set(parse(line)))
+                if line.startswith('END'):  #   This command can be used to limit the amount of data examined
                     break
-            self.study_dataset.append((numeration, dataset))
+            self.batch_dataset.append(input_data)
 
     def start_logging(self, log_file_name):
         self.log_file = open(log_file_name, 'w')
@@ -47,29 +60,40 @@ class LanguageData:
         self.log_file.write(f'\n\t= {print_constituent_lst(new_sWM)}\n\n')
         PhraseStructure.logging_report = ''
 
-    def prepare_experiment(self, n_dataset, numeration, gold_standard_dataset, language):
-        self.output_data = set()
-        print(f'Dataset {n_dataset} ({language}):')
+    def prepare_experiment(self, n_dataset, input_data, language):
+        self.output_data = {'targets': set(), 'thematic roles': set()}
+        self.n_accepted_sentences = 0
+        print(f'\nDataset {n_dataset} ({language}) -------------------------------:')
         self.log('\n---------------------------------------------------\n')
         self.log(f'Dataset {n_dataset}:\n')
-        self.log(f'Numeration: {numeration}({language})\n')
-        self.log(f'Predicted outcome: {gold_standard_dataset}\n\n\n')
+        self.log(f'{input_data}')
 
-    def evaluate_experiment(self, gold_standard_dataset):
+    def evaluate_experiment(self, input_data, output_data):
         print(f'\tDerivational steps: {self.n_accepted_sentences}')
-        overgeneralization = self.output_data - gold_standard_dataset
-        undergeneralization = gold_standard_dataset - self.output_data
-        errors = len(overgeneralization) + len(undergeneralization)
-        print(f'\tErrors {errors}')
-        if errors > 0:
-            print(f'\tShould not generate: {overgeneralization}')
-            print(f'\tShould generate: {undergeneralization}')
-        return errors
+        grammaticality_errors = 0
+        thematic_errors = 0
+        if input_data['targets']:
+            grammaticality_overgeneralization = output_data['targets'] - input_data['targets']
+            grammaticality_undergeneralization = input_data['targets'] - output_data['targets']
+            grammaticality_errors = len(grammaticality_overgeneralization) + len(grammaticality_undergeneralization)
+            print(f'\tGrammaticality errors: {grammaticality_errors}')
+            if grammaticality_errors > 0:
+                print(f'\tShould not generate sentence(s): {grammaticality_overgeneralization}')
+                print(f'\tShould generate sentences(s): {grammaticality_undergeneralization}')
+        if input_data['thematic roles']:
+            thematic_overgeneralization = output_data['thematic roles'] - input_data['thematic roles']
+            thematic_undergeneralization = input_data['thematic roles'] - output_data['thematic roles']
+            thematic_errors = len(thematic_undergeneralization) + len(thematic_overgeneralization)
+            print(f'\tThematic role errors: {thematic_errors}')
+            if thematic_errors > 0:
+                print(f'\tShould not find interpretation: {thematic_overgeneralization}')
+                print(f'\tShould find interpretation: {thematic_undergeneralization}')
 
-    def report_results(self, output_sentence, semantic_interpretation, sWM):
+        return grammaticality_errors + thematic_errors
+
+    def report_results_to_console(self, output_sentence, semantic_interpretation, sWM):
         self.n_accepted_sentences += 1
         PhraseStructure.chain_index = 0
-        print(f'\t({self.n_accepted_sentences}) {output_sentence} {print_constituent_lst(sWM)} {semantic_interpretation}')   # Print the output
+        print(f'\t({self.n_accepted_sentences}) {output_sentence}\n\t{print_constituent_lst(sWM)}\n\t{print_dictionary(semantic_interpretation)}\n')   # Print the output
         self.log(f'\t^ ACCEPTED: {output_sentence}')
-        self.output_data.add(output_sentence.strip())
         self.log('\n\n')
