@@ -17,6 +17,7 @@ class PhraseStructure:
         self.features = set()     # Lexical features
         self.zero = False         # Zero-level categories
         self.silent = False       # Phonological silencing
+        self.copied_ = False       # Constituent is a copy of something else
         self.chain_index = 0      # Marking chains in the output, not part of the theory
         self.mother_ = None       # Mother node
         if X:
@@ -44,6 +45,9 @@ class PhraseStructure:
     def mother(X):
         return X.mother_
 
+    def copied(X):
+        return X.copied_
+
     def copy(X):
         if not X.terminal():
             Y = PhraseStructure(X.left().copy(), X.right().copy())
@@ -57,7 +61,8 @@ class PhraseStructure:
         Y.features = X.features
         Y.zero = X.zero
         Y.chain_index = X.chain_index
-        Y.silent = X.silent
+        Y.silent = X.silent_
+        Y.copied_ = X.copied_
         Y.adjuncts = X.adjuncts.copy()
 
     # Copying operation with phonological silencing
@@ -65,6 +70,7 @@ class PhraseStructure:
     def chaincopy(X):
         Y = X.copy()
         X.silent = True
+        Y.copied_ = True
         return Y
 
     # Zero-level categories are phrase structure objects with less that two daughter constituents
@@ -81,16 +87,6 @@ class PhraseStructure:
                 return False
         return True
 
-    # Standard bare Merge
-    def Merge(X, Y):
-        return PhraseStructure(X, Y)
-
-    # Merge, with head and phrasal repair functions
-    # Assumes that Move is part of Merge and derives the relevant
-    # constructions without countercyclic operations
-    def MergeComposite(X, Y):
-        return X.HeadMovement(Y).Merge(Y).PhrasalMovement()
-
     # Preconditions for Merge
     def MergePreconditions(X, Y):
         if X.isRoot() and Y.isRoot():
@@ -103,43 +99,48 @@ class PhraseStructure:
             else:
                 return Y.head().specifier_subcategorization(X)                              #   Test specifier subcategorization
 
-    # Head repair for X before Merge
-    def HeadMovement(X, Y):
-        if X.HeadMovementPreconditions(Y):                                          #   Preconditions
-            PhraseStructure.logging_report += f'\n\t\t + Head chain by {X}° targeting {Y.head()}°'
-            X = Y.head().chaincopy().HeadMerge_(X)                                  #   Operation
-        return X
+    # Standard bare Merge
+    def Merge(X, Y):
+        return PhraseStructure(X, Y)
+
+    # Merge, with head and phrasal repair functions
+    # Assumes that Move is part of Merge and derives the relevant
+    # constructions without countercyclic operations
+    def MergeComposite(X, Y):
+        return X.HeadMovement(Y).Merge(Y).PhrasalMovement()
 
     def HeadMovementPreconditions(X, Y):
         return X.zero_level() and X.bound_morpheme() and not X.mandateDirectHeadMerge()
 
-    # Phrasal repair for X before Merge
-    # We separate A- and A-bar chains explicitly
-    def PhrasalMovement(X):
-        H = X.head()
-        target = None
-        if H.complement():
-            # Phrasal A-bar chains
-            if H.scope_marker() and \
-                    H.operator() and \
-                    H.complement().minimal_search('WH') and \
-                    not H.complement().minimal_search('WH').silent:
-                target = H.complement().minimal_search('WH')
-            # Phrasal A-chains
-            elif H.EPP():
-                target = H.target_for_A_movement()
-            # Copy the target and create a chain-index for better readability
-            if target:
-                target.babtize_chain()
-                PhraseStructure.logging_report += f'\n\t\t + Phrasal chain by {H}° targeting {target})'
-                X = target.chaincopy().Merge(X)
+    # Head repair for X before Merge
+    def HeadMovement(X, Y):
+        if X.HeadMovementPreconditions(Y):
+            PhraseStructure.logging_report += f'\n\t\t + Head chain by {X}° targeting {Y.head()}°'
+            return Y.head().chaincopy().HeadMerge_(X)
         return X
 
-    def target_for_A_movement(X):
-        if X.complement().head().specifier() and not X.complement().head().specifier().silent:
-            return X.complement().head().specifier()
-        if X.complement().head().complement() and not X.complement().head().complement().silent:
-            return X.complement().head().complement()
+    def PhrasalMovement(X):
+        if X.head().EPP() and X.head().complement() and X.head().Agree(X.head().EPP()):
+            return X.head().Agree(X.head().EPP()).babtize_chain(X).chaincopy().Merge(X)
+        return X
+
+    def Agree(X, feature_set):
+        return X.complement().minimal_search(feature_set)
+
+    # Searches for a goal for phrasal movement, feature = target feature to be searched
+    # This is also the kernel for Agree/probe-goal operation
+    def minimal_search(X, feature_set):
+        while X:
+            if X.zero_level():
+                if feature_set == {'D'} or feature_set <= X.features:         # Intervention
+                    break
+                X = X.complement()                      # From heads the search continues into complements
+            else:                                       # For complex constituents...
+                for c in X.const:                       # examine both constituents and
+                    if feature_set <= c.head().features:    # return a constituent with the target feature, otherwise...
+                        return c
+                    if c.head() == X.head():            # search continues downstream inside the same projection
+                        X = c
 
     # Head Merge creates zero-level categories and implements feature inheritance
     def HeadMerge_(X, Y):
@@ -171,7 +172,7 @@ class PhraseStructure:
     # Adjunct Merge is a variation of Merge,
     # but creates a parallel phrase structure
     def Adjoin_(X, Y):
-        X.mother = Y
+        X.mother_ = Y
         Y.adjuncts.add(X)
         return {X, Y}
 
@@ -182,23 +183,12 @@ class PhraseStructure:
                X.head().license_adjunction() and \
                X.head().license_adjunction() in Y.head().features
 
-    def babtize_chain(X):
+    def babtize_chain(X, probe):
         if X.chain_index == 0:
             PhraseStructure.chain_index += 1
             X.chain_index = PhraseStructure.chain_index
-
-    # Searches for a goal for phrasal movement, feature = target feature to be searched
-    # This is also the kernel for Agree/probe-goal operation
-    def minimal_search(X, feature):
-        while X:
-            if X.zero_level():                          # From heads the search continues into complements
-                X = X.complement()
-            else:                                       # For complex constituents...
-                for c in X.const:                       # examine both constituents and
-                    if feature in c.head().features:    # return a constituent with the target feature, otherwise...
-                        return c
-                    if c.head() == X.head():            # search continues downstream inside the same projection
-                        X = c
+            PhraseStructure.logging_report += f'\n\t\t + Phrasal chain by {probe}° targeting {X})'
+        return X
 
     # Determines whether X has a sister constituent and returns that constituent if present
     def sister(X):
@@ -224,8 +214,8 @@ class PhraseStructure:
         return x.head()                     #   Recursion
 
     def container(X):
-        if X.mother():
-            return X.mother().head()
+        if X.max().mother():
+            return X.max().mother().head()
 
     # Verifies (recursively) that the configuration satisfies complement and
     # specifier subcategorization; only zero-level categories have subcategorization
@@ -292,7 +282,7 @@ class PhraseStructure:
         return 'D' in X.head().features and not X.zero_level()
 
     def thematic_head(X):
-        return 'θ' in X.features
+        return 'θ' in X.features and not X.EPP()
 
     def verbal(X):
         return 'V' in X.features
@@ -303,7 +293,7 @@ class PhraseStructure:
 
     # Definition for EPP
     def EPP(X):
-        return 'EPP' in X.features
+        return next((set(f.split(':')[1].split(',')) for f in X.features if f.startswith('EPP')), None)
 
     # Definition for operators
     def operator(X):
