@@ -61,7 +61,7 @@ class PhraseStructure:
         Y.features = X.features
         Y.zero = X.zero
         Y.chain_index = X.chain_index
-        Y.silent = X.silent_
+        Y.silent = X.silent
         Y.copied_ = X.copied_
         Y.adjuncts = X.adjuncts.copy()
 
@@ -77,7 +77,7 @@ class PhraseStructure:
     # or they are marked as zero-level objects; these two are still kept separate since the
     # latter is currently an independent stipulation
     def zero_level(X):
-        return X.zero or X.terminal()
+        return (X.zero or X.terminal()) and not X.sublexical()
 
     # Terminal elements do not have daughter constituents
     # Note: a constituent can be None, hence the search
@@ -99,15 +99,15 @@ class PhraseStructure:
             else:
                 return Y.head().specifier_subcategorization(X)                              #   Test specifier subcategorization
 
-    # Standard bare Merge
-    def Merge(X, Y):
-        return PhraseStructure(X, Y)
-
     # Merge, with head and phrasal repair functions
     # Assumes that Move is part of Merge and derives the relevant
     # constructions without countercyclic operations
     def MergeComposite(X, Y):
         return X.HeadMovement(Y).Merge(Y).PhrasalMovement()
+
+    # Standard bare Merge
+    def Merge(X, Y):
+        return PhraseStructure(X, Y)
 
     def HeadMovementPreconditions(X, Y):
         return X.zero_level() and X.bound_morpheme() and not X.mandateDirectHeadMerge()
@@ -125,22 +125,29 @@ class PhraseStructure:
         return X
 
     def Agree(X, feature_set):
-        return X.complement().minimal_search(feature_set)
+        if X.complement().minimal_search(feature_set):
+            return X.complement().minimal_search(feature_set)
+        if X.complement().minimal_search({'D'}):    #   Last resort
+            return X.complement().minimal_search({'D'})
 
     # Searches for a goal for phrasal movement, feature = target feature to be searched
     # This is also the kernel for Agree/probe-goal operation
     def minimal_search(X, feature_set):
         while X:
             if X.zero_level():
-                if feature_set == {'D'} or feature_set <= X.features:         # Intervention
+                if feature_set == {'D'}:
                     break
-                X = X.complement()                      # From heads the search continues into complements
-            else:                                       # For complex constituents...
-                for c in X.const:                       # examine both constituents and
-                    if feature_set <= c.head().features:    # return a constituent with the target feature, otherwise...
+                X = X.complement()
+            else:
+                for c in X.const:
+                    if feature_set <= c.head().features:
                         return c
-                    if c.head() == X.head():            # search continues downstream inside the same projection
+                    if c.head() == X.head():
                         X = c
+
+    # Preconditions for Head Merge (X Y)
+    def HeadMergePreconditions(X, Y):
+        return X.zero_level() and Y.zero_level() and Y.w_selects(X) and not Y.blockDirectHeadMerge()
 
     # Head Merge creates zero-level categories and implements feature inheritance
     def HeadMerge_(X, Y):
@@ -150,9 +157,30 @@ class PhraseStructure:
         Z.adjuncts = Y.adjuncts
         return Z
 
-    # Preconditions for Head Merge (X Y)
-    def HeadMergePreconditions(X, Y):
-        return X.zero_level() and Y.zero_level() and Y.w_selects(X) and not Y.blockDirectHeadMerge()
+    # Preconditions for adjunction
+    def AdjunctionPreconditions(X, Y):
+        return X.isRoot() and \
+               Y.isRoot() and \
+               X.head().license_adjunction() and \
+               X.head().license_adjunction() in Y.head().features
+
+    # Adjunct Merge is a variation of Merge,
+    # but creates a parallel phrase structure
+    def Adjoin_(X, Y):
+        X.mother_ = Y
+        Y.adjuncts.add(X)
+        return {X, Y}
+
+    def FeatureMergePreconditions(X, Y):
+        return X.sublexical() and Y.terminal() and X.obligatory_fcomplement_features() <= Y.features
+
+    def FeatureMerge(X, Y):
+        Y.features = Y.features | X.features
+        Y.features.discard('sublexical')
+        return Y
+
+    def obligatory_fcomplement_features(X):
+        return {f.split(':')[1] for f in X.features if f.startswith('!fCOMP')}
 
     # Word-internal selection between X and Y under (X Y), where
     # Y selects for X
@@ -168,20 +196,6 @@ class PhraseStructure:
         while X.right():
             X = X.right()
         return X
-
-    # Adjunct Merge is a variation of Merge,
-    # but creates a parallel phrase structure
-    def Adjoin_(X, Y):
-        X.mother_ = Y
-        Y.adjuncts.add(X)
-        return {X, Y}
-
-    # Preconditions for adjunction
-    def AdjunctionPreconditions(X, Y):
-        return X.isRoot() and \
-               Y.isRoot() and \
-               X.head().license_adjunction() and \
-               X.head().license_adjunction() in Y.head().features
 
     def babtize_chain(X, probe):
         if X.chain_index == 0:
@@ -295,6 +309,9 @@ class PhraseStructure:
     def EPP(X):
         return next((set(f.split(':')[1].split(',')) for f in X.features if f.startswith('EPP')), None)
 
+    def sublexical(X):
+        return 'sublexical' in X.features
+
     # Definition for operators
     def operator(X):
         return 'WH' in X.features
@@ -310,7 +327,7 @@ class PhraseStructure:
         return 'λ:R' in X.head().features
 
     def isRoot(X):
-        return not X.mother()
+        return not X.mother() and not X.sublexical()
 
     def mandateDirectHeadMerge(X):
         return 'ε' in X.features

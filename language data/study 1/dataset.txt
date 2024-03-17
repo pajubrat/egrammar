@@ -1,4 +1,8 @@
 
+numeration=T; D; koira; v; puri; D; miestä
+
+END
+
 # Study 1.
 
 # 1. Intransitive clauses
@@ -255,3 +259,7 @@
 				# Extra DP-argument
 				
 					numeration=T;the;dog;seems;to;bark;the;man
+
+	# 6. Finnish topicalization
+	
+	

@@ -26,7 +26,7 @@ class LanguageData:
             return values_
 
         input_data = reset()
-        with open(filename) as f:
+        with open(filename, 'r', encoding='utf8') as f:
             lines = f.readlines()
             for line in lines:
                 if line.strip() and not line.startswith('#') and not line.startswith('END'):

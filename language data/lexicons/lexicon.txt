@@ -5,6 +5,16 @@ b			:: b f3 f4 LANG:XX
 c			:: c f5 f6 LANG:XX
 d			:: d f7 f8 LANG:XX
 
+# Universal (functional) items
+T			:: T PC:#X !SPEC:D !wCOMP:V -ε
+T*			:: T PC:#X !wCOMP:V -ε 
+C			:: C -ε IND
+C(wh)		:: C C(wh) PC:#X !wCOMP:T -ε WH SCOPE 
+v			:: v PC:#X !wCOMP:V -ε 
+D			:: D LF:the PF:0
+[topic]		:: LF:topic PF:0 sublexical !fCOMP:D TOPIC
+
+
 # English
 the			:: D LANG:EN
 dog			:: N LANG:EN
@@ -21,17 +31,19 @@ city		:: N LANG:EN
 from		:: P LANG:EN
 in			:: P α:V   LANG:EN
 ed			:: T PC:#X !wCOMP:V -ε LANG:EN
-T			:: T PC:#X !SPEC:D !wCOMP:V -ε
-T*			:: T PC:#X !wCOMP:V -ε 
 did			:: T LANG:EN
 does		:: T LANG:EN
 was			:: T LANG:EN
-C			:: C -ε IND
-C(wh)		:: C C(wh) PC:#X !wCOMP:T -ε WH SCOPE 
-v			:: v PC:#X !wCOMP:V -ε 
 v*			:: v* v LANG:EN PC:#X !COMP:V -SPEC:v -COMP:v* !wCOMP:V -wCOMP:v* -ε
 that		:: C LANG:EN
 believe		:: V !COMP:C LANG:EN
 seem		:: V !SPEC:D !COMP:T/inf RAISING LANG:EN
 seems		:: V !SPEC:D !COMP:T/inf RAISING LANG:EN
 to			:: T/inf !COMP:V -COMP:RAISING -COMP:T LANG:EN
+
+# Finnish
+
+
+koira		:: N LF:dog PF:koira NOM LANG:FI
+puri		:: V V/TR LF:bit PF:pure- LANG:FI
+miestä		:: N LF:man PF:miestä PAR LANG:FI

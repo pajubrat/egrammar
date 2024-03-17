@@ -2,7 +2,10 @@ def print_lst(lst):
     str = ''
     for i, ps in enumerate(lst):
         if ps.terminal():
-            str += f'{ps}°'
+            if ps.sublexical():
+                str += f'{ps}'
+            else:
+                str += f'{ps}°'
         else:
             str += f'{ps}'
         if i < len(lst) - 1:

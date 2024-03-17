@@ -24,7 +24,9 @@ class SpeakerModel:
         # List of all syntactic operations available in the grammar
         self.syntactic_operations = [(PhraseStructure.MergePreconditions, PhraseStructure.MergeComposite, 2, 'Merge'),
                                      (PhraseStructure.HeadMergePreconditions, PhraseStructure.HeadMerge_, 2, 'Head Merge'),
-                                     (PhraseStructure.AdjunctionPreconditions, PhraseStructure.Adjoin_, 2, 'Adjoin')]
+                                     (PhraseStructure.AdjunctionPreconditions, PhraseStructure.Adjoin_, 2, 'Adjoin'),
+                                     (PhraseStructure.FeatureMergePreconditions, PhraseStructure.FeatureMerge, 2, 'fMerge')
+                                     ]
 
     # Wrapper function for the derivational search function
     # Performs initialization and maps the input into numeration
@@ -50,7 +52,7 @@ class SpeakerModel:
 
     @staticmethod
     def derivation_is_complete(sWM):
-        return len({X for X in sWM if X.isRoot()}) == 1
+        return len({X for X in sWM if X.sublexical()}) == 0 and len({X for X in sWM if X.isRoot()}) == 1
 
     def process_output(self, sWM):
         # Log the solution that will be evaluated
