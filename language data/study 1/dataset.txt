@@ -1,7 +1,4 @@
 
-numeration=T; D; koira; v; puri; D; miestä
-
-END
 
 # Study 1.
 
@@ -262,4 +259,5 @@ END
 
 	# 6. Finnish topicalization
 	
-	
+		numeration=T; D; koira; v; puri; D; miestä
+		targets=D koira puri#v#T D miestä; D miestä pur#v#T D koira
